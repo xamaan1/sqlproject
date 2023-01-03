@@ -1,0 +1,304 @@
+-- DROP STATEMENTS FOR STUDENT/REGISTRATION SYSYTEM/DB TO DROP TABLES -Amaan Ali ana3389
+
+DROP TABLE Major_Student_Linking;
+DROP TABLE Student_Address_linking;
+DROP TABLE Enrollment;
+DROP TABLE Section;
+DROP TABLE Room;
+DROP TABLE Course;
+DROP TABLE Teacher;
+DROP TABLE Address;
+DROP TABLE Student;
+DROP TABLE Majors;
+
+--DROP SEQUENCES ARE HAPPENING HERE -Amaan Ali ana3389
+
+DROP SEQUENCE address_id_seq;
+DROP SEQUENCE course_id_seq;
+DROP SEQUENCE room_id_seq;
+DROP SEQUENCE section_id_seq;
+
+-- CREATE SEQUENCES AND TABLES ARE MADE FOR THE DB; SEQUENCES WILL INPUT VALUES AND TABLES WILL ALLOW DATA STORAGE - Amaan Ali ana3389
+
+CREATE SEQUENCE address_id_seq
+	START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE course_id_seq
+	START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE room_id_seq
+	START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE section_id_seq
+	START WITH 1 INCREMENT BY 1;
+
+-- Table Creation beins -Amaan Ali ana3389
+-- The majors table is created to input major id, code, and description - Amaan Ali ana3389
+
+CREATE TABLE Majors
+(
+Major_ID            NUMBER          PRIMARY KEY,
+Major_Code          CHAR(3)         UNIQUE      NOT NULL,
+Major_Descripition  VARCHAR(400)    NOT NULL
+);
+
+--The Students table is created to keep track of the students at UT and their info - Amaan Ali ana3389
+
+CREATE TABLE Student
+(
+UTEID                   VARCHAR(10)	    PRIMARY KEY, 
+First_Name		        VARCHAR(100)    NOT NULL,
+Middle_Name             VARCHAR(100)	NULL,
+Last_Name               VARCHAR(100)    NOT NULL,
+Date_of_Birth           DATE            NOT NULL,
+Classification_         CHAR(1)         NOT NULL,
+Email                   VARCHAR(100)	UNIQUE,
+Phone			        CHAR(12)        NOT NULL,
+Primary_College_Code    CHAR(1)         NOT NULL,
+International_Flag	    CHAR(1)         NOT NULL,
+cGPA                    VARCHAR(4)	    NULL,
+CONSTRAINT Student_Email_Length CHECK (LENGTH(Email) >= 7),
+CONSTRAINT International_Flag_YN CHECK (International_Flag IN ('Y', 'N')),
+CONSTRAINT Classification_Check CHECK (Classification_  IN ('1', '2', '3', '4', 'G', 'P', 'C'))
+);
+
+
+--The Address table is created to allow the storage of address - Amaan Ali ana3389
+
+CREATE TABLE Address
+(
+Address_ID		    NUMBER		    DEFAULT address_id_seq.NEXTVAL  PRIMARY KEY,
+Address_Line_1	    VARCHAR(200)    NOT NULL,
+Address_Line_2      VARCHAR(200)	NULL,
+City                VARCHAR(100)    NOT NULL,
+State_Region		VARCHAR(20)     NOT NULL,
+Zip_Postal_Code	    CHAR(5)         NOT NULL,
+Country		        VARCHAR(100)    NOT NULL
+);
+
+-- The Teachers table is created to store the teachers at UT -Amaan Ali ana3389
+
+CREATE TABLE Teacher
+(
+UTEID				VARCHAR(10)		PRIMARY KEY,
+First_Name			VARCHAR(100)    NOT NULL,
+Last_Name			VARCHAR(100)    NOT NULL,
+Email				VARCHAR(100)	UNIQUE,
+Primary_Dept		VARCHAR(100)    NOT NULL,
+Primary_Title		VARCHAR(100)    NOT NULL,
+Office_Phone		CHAR(12)        NOT NULL,
+Office_Location		VARCHAR(100)    NOT NULL,
+Office_Address_1	VARCHAR(100)    NOT NULL,
+Office_Address_2	VARCHAR(100)	NULL,
+Office_City			VARCHAR(100)    NOT NULL,
+Office_State		CHAR(2)         NOT NULL,
+Office_Zip			CHAR(5)         NOT NULL,
+Campus_Mail_Code	CHAR(5)         NOT NULL
+);
+
+--The Course table is created here to store the courses offered at UT
+
+CREATE TABLE Course
+(
+Course_ID			    NUMBER		    DEFAULT course_id_seq.NEXTVAL     PRIMARY KEY,
+Course_Code			    VARCHAR(10)     NOT NULL,
+Course_Name		        VARCHAR(100)    NOT NULL,
+Course_Description		VARCHAR(900)    NOT NULL
+);
+
+--The room table is created to store the rooms on campus that will be used for courses - Amaan Ali
+
+CREATE TABLE Room
+(
+Room_ID             NUMBER	       DEFAULT room_id_seq.NEXTVAL   NULL  	PRIMARY KEY,
+Building_Code	    CHAR(3)        NOT NULL,    
+Floor_			    VARCHAR(3)     NOT NULL,
+Room_Number	        VARCHAR(10)    NOT NULL,
+Max_Seats		    NUMBER         NOT NULL
+);	
+
+--The Section table is created to store the course, teacher, and room of the specifc section along with other information - Amaan Ali ana3389
+
+CREATE TABLE Section
+(
+Section_ID		    NUMBER		    DEFAULT section_id_seq.NEXTVAL     PRIMARY KEY,
+Course_ID		    NUMBER          NOT NULL,
+Instructor_UTEID	VARCHAR(10)		NULL,
+Room_ID		        NUMBER		    NULL,
+Unique_Number	    VARCHAR(10)     NOT NULL,
+Semester_Code	    CHAR(4)         NOT NULL,
+Section_Days		VARCHAR(10)		NULL,
+Starting_Hour		VARCHAR(4)		NULL,
+Length_Minutes	    NUMBER   		NULL,
+Mode_		        CHAR(1)         NOT NULL,
+Seat_Limit		    NUMBER          NOT NULL,
+Status		        CHAR(1)	        DEFAULT 'O',
+CONSTRAINT Status_Check CHECK (Status IN ('O', 'W', 'C','X')),
+CONSTRAINT Course_ID_FK FOREIGN KEY (Course_ID) REFERENCES Course (Course_ID),
+CONSTRAINT Instructor_UTEID_FK FOREIGN KEY (Instructor_UTEID) REFERENCES Teacher (UTEID),
+CONSTRAINT Room_ID_FK FOREIGN KEY (Room_ID) REFERENCES Room (Room_ID),
+CONSTRAINT Unique_Number_Semester_Code UNIQUE (Unique_Number, Semester_Code)
+);
+
+--The Enrollement table is created and will store the student and the courses they are taking - Amaan Ali ana3389
+
+CREATE TABLE Enrollment
+(
+UTEID			VARCHAR(10)     NOT NULL,
+Section_ID		NUMBER          NOT NULL,
+Grade_Code		VARCHAR(2)		NULL,
+CONSTRAINT Enrollement_PK PRIMARY KEY (UTEID, Section_ID),
+CONSTRAINT UTEID_Enrollement_FK FOREIGN KEY (UTEID) REFERENCES Student (UTEID),
+CONSTRAINT Section_ID_FK FOREIGN KEY (Section_ID) REFERENCES Section (Section_ID),
+CONSTRAINT Grade_Code_Check CHECK (Grade_Code  IN ('A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-', 'F', 'P', 'W', 'Q', 'X'))
+);
+
+-- The Student_Address_linking is created to breakdown the many2many realationship into a one-to-many relationship - Amaan Ali ana3389
+
+CREATE TABLE Student_Address_linking
+(
+UTEID				    VARCHAR(10)     NOT NULL,
+Address_ID			    NUMBER          NOT NULL,
+Address_Type_Code		CHAR(1)         NOT NULL,
+CONSTRAINT Student_Address_linking_PK PRIMARY KEY (UTEID, Address_ID, Address_Type_Code),
+CONSTRAINT Address_ID_FK FOREIGN KEY (UTEID) REFERENCES Student (UTEID),
+CONSTRAINT Address_ID_FK1 FOREIGN KEY (Address_ID) REFERENCES Address (Address_ID),
+CONSTRAINT Address_Type_Code_Check CHECK (Address_Type_Code IN ('H', 'L', 'O'))
+);
+
+
+-- The Major_Student_Linking Table is made here to breakdown the many2many relationship into a onetomany - Amaan Ali ana3389
+
+CREATE TABLE Major_Student_Linking
+(
+UTEID            VARCHAR(10)    NOT NULL,
+Major_ID	     NUMBER         NOT NULL,
+Date_Declared	 DATE			DEFAULT SYSDATE,
+CONSTRAINT Major_Student_PK PRIMARY KEY (UTEID, Major_ID),
+CONSTRAINT Major_ID_FK FOREIGN KEY(Major_ID) REFERENCES Majors (Major_ID),
+CONSTRAINT UTEID_FK FOREIGN KEY (UTEID) REFERENCES Student (UTEID)
+);
+
+-- INSERT SECTION WILL HELP THE TABLES JUST MADE BE POPULATED WITH DATA -Amaan Ali ana3389
+-- Student information has been seeded into the student table - Amaan Ali ana3389
+
+INSERT INTO Student
+VALUES ('ana3389', 'Amaan', 'Nasruddin', 'Ali', '15-JUN-2003', 2, 'ana3389@utexas.edu', '832-606-2261', 'B', 'N', 3.96);
+Commit;
+
+INSERT INTO Student
+VALUES ('tas1234', 'Taylor', 'Allison', 'Swift', '13-DEC-1989', 'G', 'tas1234@utexas.edu', '123-456-7890', 'B', 'N', 4.00);
+Commit;
+
+-- Majors information has been seeded into the Majors table - Amaan Ali ana3389
+
+INSERT INTO Majors
+Values (1, 'MIS', 'Management Information Systems');
+Commit;
+
+INSERT INTO Majors
+Values (2, 'E', 'English');
+Commit;
+
+INSERT INTO Majors
+Values (3, 'MUS', 'Music');
+Commit;
+
+-- Student ID and  major has been seeded into the linking table - Amaan Ali ana3389
+
+INSERT INTO Major_Student_Linking
+Values('ana3389', 1, sysdate );
+Commit;
+
+INSERT INTO Major_Student_Linking
+Values('tas1234', 2, sysdate );
+Commit;
+
+INSERT INTO Major_Student_Linking
+Values('tas1234', 3, sysdate );
+Commit;
+
+-- Course information has been seeded into the course table -Amaan Ali ana3389
+
+INSERT INTO Course
+Values(DEFAULT, 'MIS325', 'Database Management ', 'Restricted to students in the McCombs School of Business. Beginning and intermediate topics in data modeling for relational database management systems. Management Information Systems 325 and Business Analytics 325 may not both be counted. Offered on the letter-grade basis only.');
+Commit;
+
+INSERT INTO Course
+Values(DEFAULT, 'MIS333K', 'Web Application Development', 'Restricted to students in a business major. Concepts and practices of information systems. Advanced programming techniques used to generate menu-driven applications. Prerequisite: Management Information Systems 304 or Business Analytics 304; and Management Information Systems 325 or Business Analytics 325 with a grade of at least C- in each. Offered on the letter-grade basis only.');
+Commit;
+
+--Teacher's information has been seeded into the Teacher table - Amaan Ali ana3389
+
+INSERT INTO Teacher
+Values('mag123', 'Meredith', 'Grey', 'mag123@utexas.edu', 'IROM', 'Lecturer', '098-765-4321', 'CBA', '2110 Speedway', NULL, 'Austin', 'TX', '78705', '777');
+Commit;
+
+INSERT INTO Teacher
+Values('bab123', 'Benjamin', 'Button', 'bab123@utexas.edu', 'IROM', 'Lecturer', '987-654-3210', 'CBA', '2110 Speedway', NULL, 'Austin', 'TX', '78705', '888');
+Commit;
+
+--Room information has been seeded into the Room table - Amaan Ali ana3389
+
+INSERT INTO Room
+Values(DEFAULT, 'CBA', '4', '4.777', 90);
+Commit;
+
+INSERT INTO Room
+Values(DEFAULT, 'CBA', '4', '4.778', 90);
+Commit;
+
+--Section information has been seeded into the section table - Amaan Ali ana3389
+
+INSERT INTO Section
+Values(DEFAULT, 1, 'mag123', 1, '12345', 'FA22', 'TTH', '800', 90, 'F', 60, DEFAULT);
+Commit;
+
+INSERT INTO Section
+Values(DEFAULT, 1, 'mag123', 1, '22345', 'FA22', 'TTH', '930', 90, 'F', 60, DEFAULT);
+Commit;
+
+INSERT INTO Section
+Values(DEFAULT, 1, 'bab123', 2, '32345', 'FA22', 'TTH', '1100', 90, 'F', 60, DEFAULT);
+Commit;
+
+
+INSERT INTO Section
+Values(DEFAULT, 2, 'bab123', 2, '42345', 'FA22', 'MW', '800', 90, 'F', 60, DEFAULT);
+Commit;
+
+INSERT INTO Section
+Values(DEFAULT, 2, NULL, NULL, '52345', 'FA22', 'MW', '930', 90, 'F', 60, DEFAULT);
+Commit;
+
+INSERT INTO Section
+Values(DEFAULT, 2, NULL, NULL, '62345', 'FA22', 'MW', '1100', 90, 'F', 60, DEFAULT);
+Commit;
+
+--Enrollment information for students has been seeded into the enrollement table -Amaan Ali ana3389
+
+INSERT INTO Enrollment
+Values('ana3389', 1, NULL);
+Commit;
+
+
+INSERT INTO Enrollment
+Values('ana3389', 4, NULL);
+Commit;
+
+
+INSERT INTO Enrollment
+Values('tas1234', 2, NULL);
+Commit;
+
+INSERT INTO Enrollment
+Values('tas1234', 5, NULL);
+Commit;
+
+--CREATE INDEX on section foreign keys, course_code and building_code TO HELP SQL SPEED UP SEARCHES - Amaan Ali ana3389
+
+CREATE INDEX Section_ix
+ON Section (Course_ID, Instructor_UTEID, Room_ID);
+
+CREATE INDEX Course_ix
+ON Course (Course_Code);
+
+CREATE INDEX Room_ix
+ON Room (Building_Code);
