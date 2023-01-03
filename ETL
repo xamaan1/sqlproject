@@ -1,0 +1,136 @@
+--1
+CREATE TABLE student_dw
+(
+student_eid         VARCHAR2(10),
+data_source         VARCHAR2(10),
+first_name          VARCHAR2(50),
+last_name           VARCHAR2(50),
+classification      CHAR(1),
+birth_date          DATE,
+email               VARCHAR2(50),
+phone               CHAR(12),
+address             VARCHAR2(50),
+city                VARCHAR2(50), 
+state               VARCHAR2(50), 
+zip                 VARCHAR2(10),
+gpa                 NUMBER(3,2),   
+CONSTRAINT composite_id_pk   PRIMARY KEY  (data_source, student_eid)
+);
+
+
+--2
+
+CREATE OR REPLACE VIEW SFA_STUDENT_VIEW AS
+SELECT jackeid as student_eid, 
+       STUDENT_FIRST_NAME as first_name, 
+       STUDENT_LAST_NAME as last_name, 
+       DOB as birth_date, 
+       CLASSIFICATION as classification, 
+       EMAIL as email, 
+       substr(phone_number,1, 3) || '-' || substr(phone_number, 4, 3) || '-' || substr(phone_number, 7, 4) as phone,
+       addressline1 as address,
+       city as city, 
+       statecode as state,
+       zip_code as zip,
+       GPA as gpa,
+       'SFA' as data_source
+FROM new_lj_students;
+    
+
+    
+CREATE OR REPLACE VIEW UT_STUDENT_VIEW as
+SELECT s.UTEID as student_eid, 
+       FIRST_NAME as first_name, 
+       LAST_NAME as last_name, 
+       CLASSIFICATION as classification, 
+       DATE_OF_BIRTH as birth_date, 
+       EMAIL as email, 
+       phone as phone,
+       CGPA as gpa,
+       'UTA' as data_source,
+       address_line_1 as address,
+       city as city,
+       zip_postal_code as zip,
+       state_region as state
+FROM student s inner join student_address_linking sal on s.uteid = sal.uteid inner join address a on a.address_id = sal.address_id
+WHERE s.classification in ('1','2','3','4') and address_type_code = 'H';
+
+    
+--3
+CREATE OR REPLACE PROCEDURE student_etl_proc
+AS 
+BEGIN
+    INSERT INTO student_dw 
+    SELECT uta.student_eid,
+           uta.data_source, 
+           uta.first_name ,
+           uta.last_name , 
+           uta.classification , 
+           uta.birth_date , 
+           uta.email ,
+           uta.phone , 
+           uta.address ,                
+           uta.city ,                    
+           uta.state ,                   
+           uta.zip ,                    
+           uta.gpa 
+    FROM ut_student_view uta left join student_dw sdw
+        on uta.student_eid = sdw.student_eid
+       and uta.data_source = sdw.data_source
+    WHERE sdw.student_eid is null;
+    
+    INSERT INTO student_dw
+    SELECT sfa.student_eid, 
+           sfa.data_source ,
+           sfa.first_name ,
+           sfa.last_name , 
+           sfa.classification , 
+           sfa.birth_date , 
+           sfa.email ,
+           sfa.phone , 
+           sfa.address,                
+           sfa.city ,                    
+           sfa.state ,                   
+           sfa.zip ,                    
+           sfa.gpa  
+    FROM sfa_student_view sfa left join student_dw sdw
+        on sfa.student_eid = sdw.student_eid
+        and sfa.data_source = sdw.data_source
+    WHERE sdw.student_eid is null;
+           
+
+    MERGE INTO student_dw sdw
+        USING sfa_student_view sfa
+        ON (sdw.student_eid = sfa.student_eid and sdw.data_source = 'SFA')
+    WHEN MATCHED THEN
+        UPDATE SET  sdw.first_name = sfa.first_name,
+                    sdw.last_name = sfa.last_name,
+                    sdw.classification = sfa.classification,
+                    sdw.birth_date = sfa.birth_date,
+                    sdw.email = sfa.email,
+                    sdw.phone = sfa.phone,
+                    sdw.address = sfa.address,
+                    sdw.city = sfa.city,
+                    sdw.state = sfa.state,
+                    sdw.zip = sfa.zip,
+                    sdw.gpa = sfa.gpa;
+                    
+    MERGE INTO student_dw sdw
+        USING ut_student_view uta
+        ON (sdw.student_eid = uta.student_eid and sdw.data_source = 'UTA')
+    WHEN MATCHED THEN
+        UPDATE SET  sdw.first_name = uta.first_name,
+                    sdw.last_name = uta.last_name,
+                    sdw.classification = uta.classification,
+                    sdw.birth_date = uta.birth_date,
+                    sdw.email = uta.email,
+                    sdw.phone = uta.phone,
+                    sdw.address = uta.address,
+                    sdw.city = uta.city,
+                    sdw.state = uta.state,
+                    sdw.zip = uta.zip,
+                    sdw.gpa = uta.gpa;                             
+end;
+/
+
+call student_etl_proc();
