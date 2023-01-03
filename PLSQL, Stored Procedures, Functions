@@ -1,0 +1,162 @@
+ --1
+SET SERVEROUTPUT ON;
+
+DECLARE
+    count_classes NUMBER;
+BEGIN
+    SELECT COUNT(uteid)
+    INTO count_classes
+    FROM ENROLLMENT
+    WHERE UTEID = 'ARS2860';
+    IF count_classes > 1 THEN
+        DBMS_OUTPUT.PUT_LINE('The student has taken more than 1 class.');
+    ELSE
+        DBMS_OUTPUT.PUT_LINE('The student has taken only 1 class');
+    END IF;
+END;
+/
+
+DELETE FROM ENROLLMENT 
+WHERE section_id = '1045' and UTEID = 'ARS2860';
+        
+ROLLBACK; 
+
+
+--2
+SET DEFINE ON;
+
+DECLARE 
+count_classes NUMBER;
+UTEID_number VARCHAR(10); 
+
+BEGIN
+    SELECT COUNT(*), UTEID
+    INTO count_classes, UTEID_number
+    FROM ENROLLMENT
+    WHERE UTEID = '&ID_input'
+    group by UTEID;
+    
+    IF count_classes > 1 THEN
+        DBMS_OUTPUT.PUT_LINE('The student with uteid:' || ' ' || UTEID_number || ', has taken more than 1 class.');
+    ELSE
+        DBMS_OUTPUT.PUT_LINE('The student with uteid:' || ' ' || UTEID_number || ', has only taken 1 class.');
+    END IF;
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+    DBMS_OUTPUT.PUT_LINE(
+    'You entered an invalid UTEID.');
+END;
+/
+
+--3
+
+BEGIN
+    INSERT INTO COURSE
+    VALUES(course_id_seq.NEXTVAL,'MIS123','Intro to Coding', 'Students will learn how to code in python');
+    DBMS_OUTPUT.PUT_LINE('1 row was inserted into the course table.');
+        commit;
+EXCEPTION
+    WHEN OTHERS THEN
+    DBMS_OUTPUT.PUT_LINE('Row was not inserted. Unexpected exception occurred.');
+END;
+/
+
+
+
+--4
+SET SERVEROUTPUT ON;
+DECLARE
+    TYPE names_table     IS TABLE OF VARCHAR(80);
+    student_major        names_table;
+BEGIN
+    SELECT MAJOR_CODE
+    BULK COLLECT INTO student_major
+    FROM MAJOR
+    WHERE MAJOR_CODE LIKE 'M%'
+    ORDER BY MAJOR_CODE;
+    
+    FOR i in 1..student_major.COUNT LOOP
+        DBMS_OUTPUT.PUT_LINE('Student Major: ' ||i||': '||student_major(i));
+    END LOOP;
+END;
+/
+
+--5
+SET SERVEROUTPUT ON;
+
+DECLARE 
+    CURSOR student_info IS
+        SELECT first_name, last_name, major_code, major_description
+        FROM STUDENT s join MAJOR_STUDENT_LINKING msl 
+         on s.UTEID = msl.UTEID JOIN MAJOR m 
+         on m.major_id = msl.major_id
+         ORDER BY major_description,last_name, first_name;
+         
+    student_row major%ROWTYPE;  
+    
+BEGIN
+    FOR student_row IN student_info LOOP
+    DBMS_OUTPUT.PUT_LINE('Student, ' || student_row.first_name || ' ' || student_row.last_name || ', has chosen' || ' ' ||  student_row.major_description || ' as the major.');
+        
+    END LOOP; 
+END;
+/
+
+--6
+
+CREATE OR REPLACE PROCEDURE insert_course
+(
+course_code_value           COURSE.course_code%TYPE,
+course_name_value           COURSE.course_name%TYPE,
+course_description_vaulue   COURSE.course_description%TYPE
+)
+AS
+BEGIN
+    INSERT INTO COURSE
+    VALUES(course_id_seq.NEXTVAL,course_code_value, course_name_value, course_description_vaulue);
+        commit;
+EXCEPTION
+    WHEN OTHERS THEN
+    ROLLBACK;
+END;
+/
+
+--QUESTION 6 CALLS
+
+CALL insert_course ('MIS888', 'Advanced Database Management', 'A course on advanced DB topics.');
+
+BEGIN
+insert_course ('MIS999', 'Intermediate Python', 'A course on inheritance and polymorphism.'); 
+END;
+/
+
+
+-- 7
+CREATE OR REPLACE FUNCTION class_count
+(
+    UTEID_para enrollment.uteid%TYPE
+)
+RETURN NUMBER
+AS
+    class_count NUMBER;
+BEGIN
+    SELECT COUNT(*)
+    INTO class_count
+    FROM enrollment
+    WHERE UTEID = UTEID_para;
+    
+    RETURN class_count;
+END;
+/
+
+--QUESTION 7 select statements
+select UTEID, class_count(UTEID)
+from enrollment
+group by UTEID
+order by UTEID;
+
+select UTEID, Class_count(UTEID)
+from enrollment
+where Class_count(UTEID) > 1
+group by UTEID
+order by Class_count(UTEID) desc, UTEID;
