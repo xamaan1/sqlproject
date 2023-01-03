@@ -1,0 +1,52 @@
+-- Create Roles
+CREATE ROLE student;
+CREATE ROLE teacher;
+CREATE ROLE registrar_admin;
+
+--Grant Privileges to Roles
+
+--STUDENT
+GRANT SELECT ON Room TO student;
+GRANT SELECT ON Course TO student;
+GRANT SELECT ON Section TO student;
+GRANT SELECT, UPDATE ON Enrollment TO student; GRANT SELECT, UPDATE ON Student TO student; 
+--TEACHER
+GRANT SELECT ON Room TO teacher;
+GRANT SELECT ON Course TO teacher;
+GRANT SELECT ON Section TO teacher;
+GRANT SELECT ON Enrollment TO teacher;
+GRANT SELECT ON Student TO teacher;
+--REGISTRAR ADMIN
+GRANT SELECT, INSERT, UPDATE ON Room TO registrar_admin;
+GRANT SELECT, INSERT, UPDATE ON Course TO registrar_admin;
+GRANT SELECT, INSERT, UPDATE ON Section TO registrar_admin;
+GRANT ALL ON Enrollment TO registrar_admin;
+GRANT SELECT INSERT, UPDATE ON Student TO registrar_admin;
+
+--Revoke Privileges from roles
+--STUDENT
+REVOKE SELECT ON Room FROM student;
+REVOKE SELECT ON Course FROM student;
+REVOKE SELECT ON Section FROM student;
+REVOKE SELECT, UPDATE ON Enrollment FROM student;
+REVOKE SELECT, UPDATE ON student FROM student;
+--TEACHER
+REVOKE SELECT ON Room FROM teacher;
+REVOKE SELECT ON Course FROM teacher;
+REVOKE SELECT ON Section FROM teacher;
+REVOKE SELECT ON Enrollment FROM teacher;
+REVOKE SELECT ON student FROM teacher;
+--REGISTRAR ADMIN
+REVOKE SELECT, INSERT, UPDATE ON Room FROM registrar_admin; 
+REVOKE SELECT, INSERT, UPDATE ON Course FROM registrar_admin; 
+REVOKE SELECT, INSERT, UPDATE ON Section FROM registrar_admin; 
+REVOKE ALL ON Enrollment FROM registrar_admin;
+REVOKE SELECT, INSERT, UPDATE ON Student FROM registrar_admin;
+
+--View
+CREATE OR REPLACE VIEW teacher_student_view AS
+SELECT UTEID, first_name, middle_name, last_name,
+classification, email, phone, primary_college_code, international_flag
+       FROM STUDENT
+WITH READ ONLY;
+GRANT SELECT ON teacher_student_view TO teacher;
